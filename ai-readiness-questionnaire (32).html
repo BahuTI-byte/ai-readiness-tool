@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How Exposed Is Your SaaS Business To AI Disruption?</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f8fafc; font-family: 'Inter', sans-serif; color: #1e293b; }
+    button { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    @media print {
+      body { background: white; }
+      .no-print { display: none !important; }
+      .print-container { padding: 0 !important; }
+      .print-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; break-inside: avoid; }
+      button { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const TAG = { LOW: "Emerging", MID: "Developing", HIGH: "Mature" };
+
+    const EXISTENTIAL_IDS = new Set(["d1", "o1", "o3"]);
+
+    const defensiveQuestions = [
+      {
+        id: "d1",
+        question: "How proprietary and defensible is your data advantage?",
+        hint: "Think customer usage data, workflow data, feedback loops, outcomes data, labeling, or unique access - not just product features.",
+        options: [
+          { label: "Data is mostly public, easy to source, or not differentiated", score: 0, tag: TAG.LOW },
+          { label: "Some proprietary data or customer context, but not yet deeply defensible", score: 2, tag: TAG.MID },
+          { label: "Unique, rights-secured, or compounding data that improves the product over time", score: 4, tag: TAG.HIGH },
+        ],
+      },
+      {
+        id: "d2",
+        question: "Are you becoming the system of record in your customer's workflow?",
+        hint: "Do customers rely on you as the place where key actions, decisions, and workflow history live - or are you still a layer on top of another platform?",
+        options: [
+          { label: "Used for a specific task; the main workflow runs elsewhere", score: 0, tag: TAG.LOW },
+          { label: "Integrated into important workflows and becoming more central", score: 1, tag: TAG.MID },
+          { label: "Core operational system for a critical workflow", score: 2, tag: TAG.HIGH },
+        ],
+      },
+      {
+        id: "d6",
+        question: "Do you have structural barriers that make replacement difficult?",
+        hint: "This can include integrations, compliance, trust, implementation effort, proprietary workflows, distribution, or ecosystem position.",
+        options: [
+          { label: "Customers could replace us with limited disruption today", score: 0, tag: TAG.LOW },
+          { label: "Some barriers exist through integrations, trust, or process adoption", score: 1, tag: TAG.MID },
+          { label: "Replacing us would cause meaningful operational, technical, or compliance disruption", score: 2, tag: TAG.HIGH },
+        ],
+      },
+      {
+        id: "d7",
+        question: "Are you positioned as a required control layer that AI workflows must pass through?",
+        hint: "Think enforcement layers, policy engines, identity and access controls, orchestration hubs, or other points where AI must operate through you - not around you.",
+        options: [
+          { label: "AI workflows could bypass us without much disruption", score: 0, tag: TAG.LOW },
+          { label: "We are required in some workflows, but not consistently", score: 1, tag: TAG.MID },
+          { label: "We are a required control, enforcement, or policy layer", score: 2, tag: TAG.HIGH },
+        ],
+      },
+    ];
+
+    const offensiveQuestions = [
+      {
+        id: "o1",
+        question: "Have you shipped AI-powered capabilities that are in active customer production?",
+        hint: "Not a roadmap item or beta - actual shipped functionality driving customer outcomes today.",
+        options: [
+          { label: "No AI features in production yet", score: 0, tag: TAG.LOW },
+          { label: "AI features shipped, but adoption or impact is still limited", score: 2, tag: TAG.MID },
+          { label: "AI is core to how customers use the product and derive value from it daily", score: 4, tag: TAG.HIGH },
+        ],
+      },
+      {
+        id: "o2",
+        question: "Have you built agentic AI workflows that can take action autonomously?",
+        hint: "The shift from AI-assisted to AI-autonomous workflows is one of the biggest product shifts over the next few years.",
+        options: [
+          { label: "No autonomous AI workflows in production", score: 0, tag: TAG.LOW },
+          { label: "Early agentic capabilities exist in narrow or supervised use cases", score: 1, tag: TAG.MID },
+          { label: "AI agents execute meaningful workflows autonomously with clear guardrails and human oversight", score: 2, tag: TAG.HIGH },
+        ],
+      },
+      {
+        id: "o5",
+        question: "Does your AI produce outputs that customers can trust, understand, and act on?",
+        hint: "Trust is critical - especially when AI influences decisions, recommendations, or workflow automation.",
+        options: [
+          { label: "AI is not yet in the product, or its outputs are still hard for customers to verify, understand, or act on", score: 0, tag: TAG.LOW },
+          { label: "AI outputs can sometimes support customer decisions, but trust, evidence, or consistency are still uneven", score: 1, tag: TAG.MID },
+          { label: "AI outputs are clear, well-supported, and reliable enough that customers can confidently act on them", score: 2, tag: TAG.HIGH },
+        ],
+      },
+      {
+        id: "o3",
+        question: "Can you measure and improve AI performance over time?",
+        hint: "Strong AI products get better through usage, feedback, evaluation, and real-world outcomes.",
+        options: [
+          { label: "AI is not yet in the product, or we do not yet have a clear way to measure and improve its performance", score: 0, tag: TAG.LOW },
+          { label: "Some feedback or evaluation loops exist, but they are inconsistent or slow", score: 2, tag: TAG.MID },
+          { label: "We have repeatable feedback and evaluation loops that continuously improve quality, performance, or automation accuracy", score: 4, tag: TAG.HIGH },
+        ],
+      },
+      {
+        id: "o7",
+        question: "Are you using AI internally to accelerate product development, operations, or go-to-market?",
+        hint: "AI leverage inside the company can be as important as AI in the product.",
+        options: [
+          { label: "Internal AI use is ad hoc, with little measurable impact", score: 0, tag: TAG.LOW },
+          { label: "AI is used in specific functions with early productivity gains", score: 1, tag: TAG.MID },
+          { label: "AI is embedded across engineering, operations, support, and go-to-market with measurable efficiency and output gains", score: 2, tag: TAG.HIGH },
+        ],
+      },
+      {
+        id: "o9",
+        question: "Is your commercial model reflecting the value AI creates?",
+        hint: "As AI becomes part of the product, strong companies start to translate that value into packaging, expansion, usage, or pricing.",
+        options: [
+          { label: "AI is not yet in the product, or too early to affect commercial model", score: 0, tag: TAG.LOW },
+          { label: "AI is in the product and beginning to support packaging, upsell, or usage growth", score: 1, tag: TAG.MID },
+          { label: "AI value is clearly reflected in packaging, expansion, usage, or pricing", score: 2, tag: TAG.HIGH },
+        ],
+      },
+    ];
+
+    const recommendations = {
+      d1: {
+        0: {
+          why: "If your data is easy to replicate, your product is easier to replicate too. In the AI era, proprietary data and feedback loops are often more durable than features alone.",
+          action: "Identify one workflow that generates unique customer signal today and build a process to capture, label, and reuse it consistently.",
+          priority: "High",
+        },
+        2: {
+          action: "Map the data signals across your product and invest in the ones that are most unique and compounding. Tighten feedback loops, labeling, and outcome tracking so product usage continuously improves model performance.",
+          priority: "Medium",
+        },
+      },
+      d2: {
+        0: {
+          why: "If critical workflow history and decisions live elsewhere, you are easier to replace. Products that become the system of record are far stickier over time.",
+          action: "Choose one workflow where you can own the record of activity, context, and decisions, then prioritize features that make your product the place customers return to operate.",
+          priority: "High",
+        },
+        1: {
+          action: "Deepen workflow ownership through stronger integrations, write-back capabilities, and stored context. The goal is to make your product harder to remove without disrupting daily operations.",
+          priority: "Medium",
+        },
+      },
+      d6: {
+        0: {
+          why: "If customers can switch with little friction, you have to keep re-winning the account. In a fast-moving AI market, that is a weak position.",
+          action: "Pick the most realistic switching cost to build in the next 6 months, such as a key integration, embedded workflow, or compliance requirement, and make it a priority.",
+          priority: "High",
+        },
+        1: {
+          action: "Quantify how costly it would be for a customer to replace you today in time, migration effort, retraining, and operational risk. Then strengthen the areas that would meaningfully raise that cost.",
+          priority: "Medium",
+        },
+      },
+      d7: {
+        0: {
+          why: "If AI agents and workflows can route around you, your position becomes more exposed as automation scales. Control points tend to become more valuable as AI proliferates, not less.",
+          action: "Identify which part of your architecture is most critical to customer workflows and explore how to become the required gateway through policy enforcement, authentication, logging, or orchestration.",
+          priority: "High",
+        },
+        1: {
+          action: "Expand the workflows where you are a required control layer. The goal is to become indispensable across more of the customer environment, not just a subset of it.",
+          priority: "Medium",
+        },
+      },
+      o1: {
+        0: {
+          why: "If AI is not yet in production, competitors are gaining learning cycles and shaping customer expectations ahead of you. The risk is not just feature gap, it is adoption gap.",
+          action: "Choose one high-value use case where AI clearly improves speed, quality, or effort, and ship a narrow production-ready version quickly.",
+          priority: "High",
+        },
+        2: {
+          action: "Identify why adoption is still limited, trust, visibility, onboarding, or inconsistent performance, and fix the biggest blocker before expanding the feature set.",
+          priority: "Medium",
+        },
+      },
+      o2: {
+        0: {
+          why: "AI that only generates insight is useful, but AI that helps drive action creates more value and stronger differentiation. This is where much of the next product shift is heading.",
+          action: "Pick one repetitive workflow where AI could safely assist or take action within clear approval boundaries. Launch a narrow agent with human approval built in, then test it with a small set of customers and measure time saved.",
+          priority: "High",
+        },
+        1: {
+          action: "Expand your strongest agentic workflow to more customers and improve controls, logging, and feedback. The goal is to make autonomous actions more trusted, visible, and repeatable.",
+          priority: "Medium",
+        },
+      },
+      o3: {
+        0: {
+          why: "If your product does not improve through usage, feedback, or outcomes, any AI advantage will be difficult to sustain. A real flywheel turns customer activity into product improvement.",
+          action: "Identify one place where customer actions, corrections, or outcomes can be captured as feedback and fed back into the product on a consistent basis.",
+          priority: "High",
+        },
+        2: {
+          action: "Make feedback and evaluation more systematic so AI performance improves more consistently over time.",
+          priority: "Medium",
+        },
+      },
+      o5: {
+        0: {
+          why: "Users will not rely on AI outputs they do not understand or trust. Better transparency often matters as much as better model performance.",
+          action: "Improve your highest-usage AI output with clearer evidence, reasoning, and guidance so customers can understand when to trust it and how to act on it.",
+          priority: "High",
+        },
+        1: {
+          action: "Standardize how AI outputs present evidence, uncertainty, and next-step guidance so customers can act with confidence across more workflows.",
+          priority: "Medium",
+        },
+      },
+      o7: {
+        0: {
+          why: "Teams that do not use AI internally tend to ship slower and operate less efficiently. Internal adoption also builds intuition for what works in the product.",
+          action: "Identify a few high-ROI internal workflows (coding, support, research, or sales prep) and measure whether AI materially improves speed or output quality.",
+          priority: "Medium",
+        },
+        1: {
+          action: "Scale the internal AI use cases that are already working and assign clear ownership so adoption becomes systematic rather than ad hoc.",
+          priority: "Low",
+        },
+      },
+      o9: {
+        0: {
+          why: "If AI is part of the product but not yet reflected in how you charge, you may be giving away value. Understanding where AI creates willingness to pay is an important early signal.",
+          action: "Identify the one or two AI capabilities customers respond to most, and test whether any of them support premium packaging, a usage tier, or an expansion conversation.",
+          priority: "Medium",
+        },
+        1: {
+          action: "Pressure-test the commercial model with a small set of customers. The goal is to learn what AI value they will actually pay for before you lock in packaging or pricing architecture.",
+          priority: "Low",
+        },
+      },
+    };
+
+    const priorityColors = {
+      High:   { bg: "#fff1f2", text: "#be123c", border: "#fecdd3" },
+      Medium: { bg: "#fff7ed", text: "#c2410c", border: "#fed7aa" },
+      Low:    { bg: "#f0fdf4", text: "#15803d", border: "#bbf7d0" },
+    };
+
+    const tagColors = {
+      [TAG.LOW]:  { bg: "#fff7ed", text: "#c2410c", border: "#fdba74", dot: "#f97316" },
+      [TAG.MID]:  { bg: "#eff6ff", text: "#1d4ed8", border: "#93c5fd", dot: "#3b82f6" },
+      [TAG.HIGH]: { bg: "#f0fdf4", text: "#15803d", border: "#86efac", dot: "#22c55e" },
+    };
+
+    // Verdict tiers use ratio bands: 0–33% Emerging, 34–66% Developing, 67–100% Mature
+    // Ratio is calculated dynamically from actual question scores, so adding or reweighting questions
+    // automatically flows through without touching this config.
+    const verdictConfig = [
+      { label: TAG.LOW,  minRatio: 0,    maxRatio: 1/3, color: "#f97316", bg: "#fff7ed", border: "#fed7aa", emoji: "🌱",
+        base: "You are still early in turning AI into durable advantage. The priority now is to strengthen core defensibility, ship practical AI capabilities, and build repeatable ways for AI to improve product value and execution." },
+      { label: TAG.MID,  minRatio: 1/3,  maxRatio: 2/3, color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe", emoji: "📈",
+        base: "You have a solid foundation, but important gaps remain. The next step is to deepen your moat, increase adoption of AI-driven capabilities, and turn early momentum into durable product and commercial advantage." },
+      { label: TAG.HIGH, minRatio: 2/3,  maxRatio: 1,   color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0", emoji: "🚀",
+        base: "You are ahead of most peers in AI readiness. The focus now is on compounding your advantages, widening the moat, and sustaining execution speed as the market evolves." },
+    ];
+
+    // Dynamic diagnostic sentence based on score pattern
+    function getDiagnostic(defScore, offScore, defMax, offMax, allAnswers) {
+      const defPct = defScore / defMax;
+      const offPct = offScore / offMax;
+      const gap = Math.abs(defPct - offPct);
+
+      const allQs = [...defensiveQuestions, ...offensiveQuestions];
+      const maxScoreFor = (id) => { const q = allQs.find(q => q.id === id); return q ? q.options[q.options.length - 1].score : 2; };
+
+      const weak = (id) => (allAnswers[id] ?? 0) === 0;
+      const mid  = (id) => (allAnswers[id] ?? 0) > 0 && (allAnswers[id] ?? 0) < maxScoreFor(id);
+      const strong = (id) => (allAnswers[id] ?? 0) === maxScoreFor(id);
+
+      // Control point advantage overrides replication risk diagnosis
+      if (strong("d7")) {
+        if ((weak("o1") || mid("o1")) && (weak("o2") || mid("o2")))
+          return "Your control point architecture gives you durable structural protection. AI workflows must pass through you, not around you. The priority now is execution: ship and operationalize AI capabilities so your offensive posture matches your defensive strength.";
+        if (offPct < defPct - 0.15)
+          return "Your control point architecture is a meaningful structural advantage that reduces AI displacement risk. The gap to close is on the offensive side: shipping, monetizing, and operationalizing AI in ways customers can clearly feel.";
+      }
+
+      if (weak("d1") || mid("d1"))
+        return "Your data advantage may not yet be meaningfully differentiated. Strengthening proprietary data capture and workflow depth should be a near-term priority.";
+      if ((weak("d2") || mid("d2")) && (weak("d6") || mid("d6")))
+        return "Your biggest gap is customer lock-in. Becoming more embedded in the core workflow, through integrations, depth, and operational dependency, should be a priority if you want to improve durability.";
+      if ((weak("o1") || mid("o1")) && (weak("o2") || mid("o2")))
+        return "Your main gap is execution. You may be behind in turning AI from a concept into shipped, trusted product functionality that customers rely on.";
+      if (weak("o5") || mid("o5"))
+        return "Your AI outputs may not yet be earning customer trust. In cyber, buyers are uniquely skeptical, and explainability and auditability are often what close deals and drive adoption.";
+
+      if (gap > 0.15) {
+        if (defPct < offPct)
+          return "Your biggest gap is on the defensive side, especially around moat depth, workflow ownership, and long-term differentiation.";
+        else
+          return "Your biggest gap is on the offensive side, especially around shipping, monetizing, and operationalizing AI in ways customers can clearly feel.";
+      }
+
+      const totalPct = (defScore + offScore) / (defMax + offMax);
+      if (totalPct < 0.34)
+        return "The challenge is broad rather than isolated, both defensibility and AI execution need to improve for AI to become a true advantage.";
+      return "Your scores are relatively balanced across defensive and offensive dimensions, which suggests the priority is depth rather than direction.";
+    }
+
+    const outputHeadlines = {
+      d1: { action: "Strengthen Your Data Moat",        strength: "Strong Proprietary Data Moat",        neutral: "Data Moat" },
+      d2: { action: "Deepen Workflow Ownership",         strength: "Strong Workflow Ownership",            neutral: "Workflow Ownership" },
+      d6: { action: "Increase Switching Costs",          strength: "Meaningful Switching Costs",           neutral: "Switching Costs" },
+      d7: { action: "Become A Stronger Control Point",   strength: "Strong Control Point Architecture",    neutral: "Control Point Position" },
+      o1: { action: "Get AI Into Customer Use",          strength: "AI Is Core In Production",             neutral: "Production AI" },
+      o2: { action: "Move From Insight To Action",       strength: "Agentic Workflows Are Operational",    neutral: "Agentic Workflows" },
+      o3: { action: "Build An AI Improvement Loop",      strength: "Strong AI Feedback Loop",              neutral: "AI Feedback Loop" },
+      o5: { action: "Improve Trust In AI Outputs",       strength: "Trusted, Explainable AI Outputs",      neutral: "AI Trust And Explainability" },
+      o7: { action: "Increase Internal AI Leverage",     strength: "Internal AI Leverage Is Working",      neutral: "Internal AI Leverage" },
+      o9: { action: "Align Pricing To AI Value",         strength: "Commercial Model Reflects AI Value",   neutral: "AI Commercial Model" },
+    };
+
+    function getHeadline(q, score, mode = "action") {
+      const labels = outputHeadlines[q.id];
+      if (!labels) return q.question;
+      if (mode === "strength") return labels.strength;
+      if (mode === "neutral")  return labels.neutral;
+      const maxScore = q.options[q.options.length - 1].score;
+      return score === maxScore ? labels.strength : labels.action;
+    }
+
+    function ScoreBar({ score, maxScore, color }) {
+      const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+      return (
+        <div style={{ background: "#e2e8f0", borderRadius: 8, height: 6, overflow: "hidden", margin: "8px 0" }}>
+          <div style={{ width: pct + "%", background: color, height: "100%", borderRadius: 8, transition: "width 0.7s ease" }} />
+        </div>
+      );
+    }
+
+    function TagBadge({ tag }) {
+      const tc = tagColors[tag] || tagColors[TAG.LOW];
+      return (
+        <span style={{ background: tc.bg, color: tc.text, border: "1px solid " + tc.border, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", letterSpacing: 0.3 }}>
+          {tag}
+        </span>
+      );
+    }
+
+    const guidance = {
+      d1: {
+        [TAG.LOW]: "Your data advantage is still limited and may be replicable by competitors. Focus on capturing more proprietary workflow data, customer-specific context, and feedback generated through product usage. Prioritize features that make the product smarter with every deployment.",
+        [TAG.MID]: "You have early signs of differentiated data, but the moat is not yet deep. Strengthen data rights, improve labeling and feedback loops, and make sure product usage consistently generates higher-quality training and decision data over time.",
+      },
+      d2: {
+        [TAG.LOW]: "You are still operating more like a point solution than a core workflow platform. Identify where you can own a higher-value workflow, store critical history, or become the place where customers take action rather than just view insights.",
+        [TAG.MID]: "You are becoming more embedded, but dependency is not yet strong. Deepen workflow ownership through write-back capabilities, approvals, collaboration features, reporting, and integrations that make your product harder to remove from day-to-day operations.",
+      },
+      d6: {
+        [TAG.LOW]: "Your product does not yet create enough friction for customers to leave. Focus on integrations, workflow depth, historical reporting, embedded configurations, and collaboration patterns that make your product more operationally important over time.",
+        [TAG.MID]: "Some switching costs exist, but they may still be light. Strengthen them through implementation depth, system integrations, operational dependencies, and features that become more valuable the longer a customer uses the product.",
+      },
+      d7: {
+        [TAG.LOW]: "If AI agents and workflows can route around you, your architectural position is exposed. As AI becomes more autonomous, products that are not in the critical path risk being displaced faster. Focus on becoming a required layer in at least one high-value workflow, through enforcement, policy, orchestration, or authentication.",
+        [TAG.MID]: "You are embedded in some workflows as a control layer, but not yet universally required. Expand your footprint so more of the customer's environment depends on routing through you, especially as AI agents proliferate and need governed access points.",
+      },
+      o1: {
+        [TAG.LOW]: "AI is still more of a concept than a production capability. Focus on one or two high-value use cases where AI can deliver a clear customer benefit quickly, then get those features into real customer environments with measurable adoption and outcomes.",
+        [TAG.MID]: "You have shipped AI features, but they are not yet central to customer value. Improve adoption, tie the features to clearer business outcomes, and make sure they are integrated into the core user workflow rather than sitting on the edge of the product.",
+      },
+      o2: {
+        [TAG.LOW]: "You are still early in moving from AI-assisted to AI-executed workflows. Start with narrow, repeatable tasks where AI can take action safely with human review or approval built in.",
+        [TAG.MID]: "You have early agentic capabilities, but they are limited in scope or trust. Expand into more meaningful workflows while improving controls, observability, fallback logic, and user confidence in autonomous actions.",
+      },
+      o3: {
+        [TAG.LOW]: "Your product is not yet learning in a meaningful way from usage. Focus on collecting structured feedback, tracking outcomes, capturing corrections, and feeding those signals back into product performance.",
+        [TAG.MID]: "You have some feedback loops, but they are not yet systematic. Make the flywheel tighter by reducing the time between usage, learning, and product improvement, and by making those improvements visible in customer outcomes.",
+      },
+      o5: {
+        [TAG.LOW]: "Customers may not yet trust AI outputs enough to rely on them. Improve explainability with clearer evidence, rationale, confidence indicators, and review mechanisms that help users understand why the AI recommended something.",
+        [TAG.MID]: "Trust is improving, but the experience may still be inconsistent. Standardize how the product presents evidence, uncertainty, and next steps so users can act with more confidence across more workflows.",
+      },
+      o7: {
+        [TAG.LOW]: "AI is not yet meaningfully improving how the company operates. Start with a few high-impact internal workflows (coding assistance, customer support, research, or sales prep) and measure the impact on speed and output.",
+        [TAG.MID]: "You are seeing early gains, but adoption is not yet broad. Expand the use cases that are working, assign ownership, and make internal AI use systematic rather than ad hoc.",
+      },
+      o9: {
+        [TAG.LOW]: "AI may not yet be shipped or commercially visible enough to affect packaging or pricing, which is fine if you are early. The next step is to identify which AI capabilities create the clearest customer value so you can start building intuition about what they will pay for.",
+        [TAG.MID]: "You can see where AI value is emerging commercially but have not yet locked it in. Use this window to test packaging and pricing ideas with existing customers before the commercial model hardens.",
+      },
+    };
+
+    // ─── DYNAMIC SUMMARY ─────────────────────────────────────────────────────
+    function getSummary(defPct, offPct, totalPct, answers) {
+      const allQs = [...defensiveQuestions, ...offensiveQuestions];
+      const maxScoreFor = (id) => { const q = allQs.find(q => q.id === id); return q ? q.options[q.options.length - 1].score : 2; };
+      const strong = (id) => (answers[id] ?? 0) === maxScoreFor(id);
+      const gap = defPct - offPct;
+      const bothWeak  = defPct <= 40 && offPct <= 40;
+      const bothStrong = defPct >= 65 && offPct >= 65;
+      const defLeads  = gap >= 20;
+      const offLeads  = gap <= -20;
+
+      // Both weak
+      if (bothWeak) {
+        if (totalPct <= 33)
+          return "You are still early across both defensibility and execution. The priority now is to narrow the wedge, strengthen the moat where you can, and ship one or two practical AI capabilities that create visible customer value.";
+        return "You have made a start on both dimensions, but neither is strong enough yet to create durable advantage. Pick the highest-leverage gap and close it before expanding the surface area.";
+      }
+
+      // Both strong
+      if (bothStrong) {
+        if (strong("d7"))
+          return "You have strong defensibility and solid AI execution, and your control point position adds meaningful structural protection. The priority now is to widen that lead by deepening the workflows, AI capabilities, and customer dependency that are already working.";
+        return "You are ahead on both defensibility and execution. The risk at this stage is losing focus or speed, so keep deepening the workflows, data advantages, and AI capabilities that made you strong.";
+      }
+
+      // Defensibility leads execution
+      if (defLeads) {
+        if (strong("d7"))
+          return "Your moat is stronger than your current AI execution, and your control point position gives you added protection. The priority now is to get AI into real customer use so buyers feel the value, not just the architecture.";
+        if (defPct >= 65)
+          return "Your moat is stronger than your current AI execution. The main priority now is to turn AI from ambition into shipped, trusted capability that customers actually use.";
+        return "Your defensibility is ahead of your AI execution. Use that advantage to ship, test, and improve AI capabilities before competitors catch up.";
+      }
+
+      // Execution leads defensibility
+      if (offLeads) {
+        if (offPct >= 65)
+          return "You are making real progress on AI execution, but your moat may not yet be strong enough to protect it. The priority now is to deepen workflow ownership, switching costs, and proprietary data before competitors match the product.";
+        return "Your AI execution is ahead of your defensibility. That is useful progress, but it will not hold unless it is backed by stronger switching costs, workflow depth, or data advantages.";
+      }
+
+      // Balanced — determine by overall level
+      if (totalPct >= 67)
+        return "Your defensibility and execution are well balanced. The priority now is to go deeper in the workflows, use cases, and AI capabilities that matter most to customers rather than adding too much at once.";
+      if (totalPct >= 34)
+        return "You are making steady progress on both defensibility and execution. The next step is to pick the one area that would most improve customer value or competitive strength, and focus there first.";
+      return "You are at an early but balanced stage. The priority is to make meaningful progress on at least one dimension rather than spreading effort evenly across both.";
+    }
+
+    // ─── RESULTS COMPONENT ───────────────────────────────────────────────────
+    function Results({ answers, companyName, reset }) {
+      const [showAllRecs, setShowAllRecs] = React.useState(false);
+      const [showBreakdown, setShowBreakdown] = React.useState(false);
+
+      const defScore = defensiveQuestions.reduce((s, q) => s + (answers[q.id] ?? 0), 0);
+      const offScore = offensiveQuestions.reduce((s, q) => s + (answers[q.id] ?? 0), 0);
+      const defMax = defensiveQuestions.reduce((s, q) => s + q.options[q.options.length - 1].score, 0);
+      const offMax = offensiveQuestions.reduce((s, q) => s + q.options[q.options.length - 1].score, 0);
+      const totalScore = defScore + offScore;
+      const totalMax = defMax + offMax;
+      const pct = Math.round((totalScore / totalMax) * 100);
+
+      const getVerdictByPoints = (pts, max) => {
+        const ratio = pts / max;
+        if (ratio <= 1/3)  return verdictConfig[0];
+        if (ratio <= 2/3) return verdictConfig[1];
+        return verdictConfig[2];
+      };
+
+      const verdict      = getVerdictByPoints(totalScore, totalMax);
+      const defPct       = Math.round((defScore / defMax) * 100);
+      const offPct       = Math.round((offScore / offMax) * 100);
+      const defV         = getVerdictByPoints(defScore, defMax);
+      const offV         = getVerdictByPoints(offScore, offMax);
+      const diagnostic   = getDiagnostic(defScore, offScore, defMax, offMax, answers);
+      const summary      = getSummary(defPct, offPct, pct, answers);
+
+      const weakDef  = defensiveQuestions.filter(q => (answers[q.id] ?? 0) === 0);
+      const weakOff  = offensiveQuestions.filter(q => (answers[q.id] ?? 0) === 0);
+      const midDef   = defensiveQuestions.filter(q => q.options.find(o => o.score === (answers[q.id] ?? 0))?.tag === TAG.MID);
+      const midOff   = offensiveQuestions.filter(q => q.options.find(o => o.score === (answers[q.id] ?? 0))?.tag === TAG.MID);
+      const strongDef = defensiveQuestions.filter(q => (answers[q.id] ?? 0) === q.options[q.options.length - 1].score);
+      const strongOff = offensiveQuestions.filter(q => (answers[q.id] ?? 0) === q.options[q.options.length - 1].score);
+
+      const totalWeak   = weakDef.length + weakOff.length;
+      const totalMid    = midDef.length + midOff.length;
+      const allStrong   = [...strongDef, ...strongOff];
+      const totalStrong = allStrong.length;
+
+      const priorityOrder = { High: 0, Medium: 1, Low: 2 };
+      const sortByPriority = (items) => [...items].sort((a, b) => {
+        const pa = recommendations[a.q.id]?.[a.score]?.priority ?? "Low";
+        const pb = recommendations[b.q.id]?.[b.score]?.priority ?? "Low";
+        return (priorityOrder[pa] ?? 2) - (priorityOrder[pb] ?? 2);
+      });
+
+      const defItems = sortByPriority([
+        ...weakDef.map(q => ({ q, score: 0 })),
+        ...midDef.map(q => ({ q, score: answers[q.id] ?? 0 })),
+      ]);
+      const offItems = sortByPriority([
+        ...weakOff.map(q => ({ q, score: 0 })),
+        ...midOff.map(q => ({ q, score: answers[q.id] ?? 0 })),
+      ]);
+
+      // Determine how many top3 slots go to the weaker category
+      const catGap = defPct - offPct; // positive = def leads, negative = off leads
+      const absGap = Math.abs(catGap);
+      const weakItems  = catGap >= 0 ? offItems : defItems;   // lagging category
+      const strongItems = catGap >= 0 ? defItems : offItems;  // leading category
+
+      let top3;
+      if (absGap >= 30) {
+        // Severely lagging: all 3 from weak category (fill from strong if not enough)
+        top3 = [...weakItems.slice(0, 3), ...strongItems].slice(0, 3);
+      } else if (absGap >= 15) {
+        // Meaningful imbalance: at least 2 from weak category
+        top3 = [...weakItems.slice(0, 2), ...strongItems.slice(0, 1), ...weakItems.slice(2)].slice(0, 3);
+      } else {
+        // Balanced: sort everything together by priority
+        top3 = sortByPriority([...defItems, ...offItems]).slice(0, 3);
+      }
+
+      const top3Ids    = new Set(top3.map(i => i.q.id));
+      const allItems   = sortByPriority([...defItems, ...offItems]);
+      const topRecs    = allItems.filter(i => (recommendations[i.q.id]?.[i.score]?.priority ?? "") === "High");
+      const topRecIds  = new Set(topRecs.map(i => i.q.id));
+      const remaining  = allItems.filter(i => !topRecIds.has(i.q.id));
+
+      const firstSentence = (text) => {
+        if (!text) return "";
+        const match = text.match(/^[^.!?]+[.!?]/);
+        return match ? match[0] : text;
+      };
+
+      const AccordionBtn = ({ open, onClick, icon, label, count }) => (
+        <button onClick={onClick} style={{
+          width: "100%", background: "white", border: "1px solid #e2e8f0",
+          borderRadius: open ? "12px 12px 0 0" : 12, padding: "13px 20px",
+          fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.03)", fontFamily: "inherit"
+        }}>
+          <span>{icon} {label}{count != null ? ` (${count} more)` : ""}</span>
+          <span style={{ color: "#94a3b8", fontSize: 16 }}>{open ? "↑" : "↓"}</span>
+        </button>
+      );
+
+      return (
+        <div className="print-container" style={{ minHeight: "100vh", background: "#f8fafc", padding: "36px 16px 60px" }}>
+          <div style={{ maxWidth: 620, margin: "0 auto" }}>
+
+            {/* ── Header ── */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: "uppercase", color: "#cbd5e1", marginBottom: 5 }}>AI Readiness Report</div>
+                <h2 style={{ color: "#0f172a", fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>{companyName || "Your Company"}</h2>
+                <div style={{ color: "#cbd5e1", fontSize: 12, marginTop: 3 }}>{new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</div>
+              </div>
+            </div>
+
+            {/* ── A. SUMMARY ── */}
+            <div className="print-card" style={{ background: "white", border: "1px solid " + verdict.border, borderRadius: 14, padding: "24px 28px", marginBottom: 12, boxShadow: "0 1px 6px rgba(0,0,0,0.05)" }}>
+              {/* Level + score */}
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+                <div style={{ fontSize: 32 }}>{verdict.emoji}</div>
+                <div>
+                  <div style={{ color: verdict.color, fontWeight: 800, fontSize: 22, lineHeight: 1 }}>{verdict.label}</div>
+                  <div style={{ color: "#94a3b8", fontSize: 12, marginTop: 3, fontWeight: 500 }}>{pct}% overall</div>
+                </div>
+              </div>
+
+              {/* Verdict sentence */}
+              <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.65, marginBottom: 18, paddingBottom: 18, borderBottom: "1px solid #f1f5f9" }}>
+                {summary}
+              </div>
+
+              {/* Defensibility vs Execution split bar */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>🛡️ Defensibility&nbsp;<strong style={{ color: defV.color }}>{defPct}%</strong></span>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>⚡ Execution&nbsp;<strong style={{ color: offV.color }}>{offPct}%</strong></span>
+                </div>
+                <div style={{ height: 8, borderRadius: 8, overflow: "hidden", display: "flex", gap: 2 }}>
+                  <div style={{ flex: 1, background: "#e2e8f0", borderRadius: "8px 0 0 8px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: defPct + "%", background: defV.color, borderRadius: "8px 0 0 8px", transition: "width .7s ease" }} />
+                  </div>
+                  <div style={{ flex: 1, background: "#e2e8f0", borderRadius: "0 8px 8px 0", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: offPct + "%", background: offV.color, transition: "width .7s ease" }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Stat row */}
+              <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                {topRecs.length  > 0 && <span style={{ color: "#be123c", fontSize: 12, fontWeight: 600 }}>⚠ {topRecs.length} urgent gap{topRecs.length  !== 1 ? "s" : ""}</span>}
+                {totalMid   > 0 && <span style={{ color: "#c2410c", fontSize: 12, fontWeight: 600 }}>↗ {totalMid} developing area{totalMid !== 1 ? "s" : ""}</span>}
+                {totalStrong > 0 && <span style={{ color: "#15803d", fontSize: 12, fontWeight: 600 }}>✓ {totalStrong} strength{totalStrong !== 1 ? "s" : ""}</span>}
+              </div>
+            </div>
+
+            {/* ── C. TOP RECOMMENDATIONS ── */}
+            {topRecs.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 13 }}>🎯 Top Recommendations</span>
+                </div>
+                <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.03)" }}>
+                  {topRecs.map(({ q, score }, i) => {
+                    const rec = recommendations[q.id]?.[score];
+                    const pc  = rec ? priorityColors[rec.priority] : priorityColors["Medium"];
+                    return (
+                      <div key={q.id} style={{ padding: "16px 20px", borderBottom: i < topRecs.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: rec ? 6 : 0 }}>
+                          <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 600, flex: 1, lineHeight: 1.45 }}>{getHeadline(q, score, "action")}</span>
+                          {rec && (
+                            <span style={{ background: pc.bg, color: pc.text, border: "1px solid " + pc.border, borderRadius: 20, padding: "2px 9px", fontSize: 10, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>{rec.priority}</span>
+                          )}
+                        </div>
+                        {rec && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {rec.why && (
+                              <div style={{ display: "flex", gap: 10 }}>
+                                <span style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, minWidth: 88, flexShrink: 0, paddingTop: 2 }}>Why it matters</span>
+                                <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>{firstSentence(rec.why)}</span>
+                              </div>
+                            )}
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <span style={{ color: "#3b82f6", fontSize: 11, fontWeight: 600, minWidth: 88, flexShrink: 0, paddingTop: 2 }}>Next move</span>
+                              <span style={{ color: "#334155", fontSize: 12, lineHeight: 1.5 }}>{firstSentence(rec.action)}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── D. WHAT'S WORKING ── */}
+            {allStrong.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 13 }}>✅ What's working</span>
+                </div>
+                <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.03)" }}>
+                  {allStrong.slice(0, 3).map((q, i) => (
+                    <div key={q.id} style={{ padding: "13px 20px", borderBottom: i < Math.min(allStrong.length, 3) - 1 ? "1px solid #f8fafc" : "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{ color: "#16a34a", fontSize: 15, flexShrink: 0 }}>✓</span>
+                        <span style={{ color: "#475569", fontSize: 13, fontWeight: 600, lineHeight: 1.45, flex: 1 }}>{getHeadline(q, 2, "strength")}</span>
+                        <TagBadge tag={TAG.HIGH} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── E. DETAILED QUESTION BREAKDOWN (accordion) ── */}
+            <div style={{ marginBottom: 12 }}>
+              <AccordionBtn open={showBreakdown} onClick={() => setShowBreakdown(!showBreakdown)} icon="📊" label="Assessment Details" />
+              {showBreakdown && (
+                <div style={{ background: "white", border: "1px solid #e2e8f0", borderTop: "none", borderRadius: "0 0 12px 12px", overflow: "hidden" }}>
+                  {[["🛡️ AI Defensibility", defensiveQuestions], ["⚡ AI Execution", offensiveQuestions]].map(([sl, qs]) => (
+                    <div key={sl}>
+                      <div style={{ padding: "8px 20px", background: "#f8fafc", borderBottom: "1px solid #f1f5f9", borderTop: "1px solid #f1f5f9" }}>
+                        <span style={{ color: "#64748b", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2 }}>{sl}</span>
+                      </div>
+                      {qs.map((q, qi) => {
+                        const score = answers[q.id] ?? 0;
+                        const opt   = q.options.find(o => o.score === score) ?? q.options[0];
+                        const tip   = guidance[q.id]?.[opt.tag];
+                        return (
+                          <div key={q.id} style={{ borderBottom: qi < qs.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: tip ? "12px 20px 8px" : "11px 20px", gap: 16 }}>
+                              <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.55, fontWeight: 500, flex: 1 }}>{getHeadline(q, answers[q.id] ?? 0, "neutral")}</div>
+                              <TagBadge tag={opt.tag} />
+                            </div>
+                            {tip && (
+                              <div style={{ margin: "0 20px 12px 20px", background: opt.tag === TAG.LOW ? "#fff7ed" : "#f8fafc", border: "1px solid " + (opt.tag === TAG.LOW ? "#fed7aa" : "#e2e8f0"), borderRadius: 8, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{opt.tag === TAG.LOW ? "⚠️" : "💡"}</span>
+                                <span style={{ color: opt.tag === TAG.LOW ? "#92400e" : "#475569", fontSize: 12, lineHeight: 1.65 }}>{tip}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── F. SEE ALL RECOMMENDATIONS (accordion) ── */}
+            {remaining.length > 0 && (
+              <div style={{ marginBottom: 28 }}>
+                <AccordionBtn open={showAllRecs} onClick={() => setShowAllRecs(!showAllRecs)} icon="📋" label="See All Recommendations" count={remaining.length} />
+                {showAllRecs && (
+                  <div style={{ background: "white", border: "1px solid #e2e8f0", borderTop: "none", borderRadius: "0 0 12px 12px", overflow: "hidden" }}>
+                    {remaining.map(({ q, score }, i) => {
+                      const rec = recommendations[q.id]?.[score];
+                      const pc  = rec ? priorityColors[rec.priority] : priorityColors["Medium"];
+                      return (
+                        <div key={q.id} style={{ padding: "14px 20px", borderBottom: i < remaining.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: rec?.action ? 6 : 0 }}>
+                            <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 600, flex: 1, lineHeight: 1.45 }}>{getHeadline(q, score, "action")}</span>
+                            {rec && (
+                              <span style={{ background: pc.bg, color: pc.text, border: "1px solid " + pc.border, borderRadius: 20, padding: "2px 9px", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{rec.priority}</span>
+                            )}
+                          </div>
+                          {rec?.action && (
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <span style={{ color: "#3b82f6", fontSize: 11, fontWeight: 600, minWidth: 88, flexShrink: 0, paddingTop: 2 }}>Next move</span>
+                              <span style={{ color: "#334155", fontSize: 12, lineHeight: 1.5 }}>{firstSentence(rec.action)}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Retake + Download */}
+            <div className="no-print" style={{ textAlign: "center", display: "flex", justifyContent: "center", gap: 12 }}>
+              <button onClick={reset} style={{ background: "white", color: "#94a3b8", border: "1px solid #e2e8f0", borderRadius: 8, padding: "9px 24px", fontSize: 13, cursor: "pointer", fontWeight: 500, fontFamily: "inherit" }}>
+                ← Retake Assessment
+              </button>
+              <button onClick={() => window.print()} style={{ background: "#0f172a", color: "white", border: "none", borderRadius: 8, padding: "9px 24px", fontSize: 13, cursor: "pointer", fontWeight: 500, fontFamily: "inherit" }}>
+                ↓ Download PDF
+              </button>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    function App() {
+      const [answers, setAnswers] = useState({});
+      const [submitted, setSubmitted] = useState(false);
+      const [companyName, setCompanyName] = useState("");
+      const [activeSection, setActiveSection] = useState("intro");
+
+      const allQs = [...defensiveQuestions, ...offensiveQuestions];
+      const answeredCount = Object.keys(answers).length;
+      const totalQ = allQs.length;
+
+      const defScore = defensiveQuestions.reduce((s, q) => s + (answers[q.id] ?? 0), 0);
+      const offScore = offensiveQuestions.reduce((s, q) => s + (answers[q.id] ?? 0), 0);
+      const defMax = defensiveQuestions.reduce((s, q) => s + q.options[q.options.length - 1].score, 0);
+      const offMax = offensiveQuestions.reduce((s, q) => s + q.options[q.options.length - 1].score, 0);
+      const totalScore = defScore + offScore;
+      const totalMax = defMax + offMax;               // 34 (4 existential qs at 0/2/4, 9 standard qs at 0/1/2)
+      const pct = Math.round((totalScore / totalMax) * 100);
+
+      // Point-band tiers
+      const getVerdictByPoints = (pts, max) => {
+        const ratio = pts / max;
+        if (ratio <= 1/3)  return verdictConfig[0];
+        if (ratio <= 2/3) return verdictConfig[1];
+        return verdictConfig[2];
+      };
+      const verdict = getVerdictByPoints(totalScore, totalMax);
+      const getVerdict = (pts, max) => getVerdictByPoints(pts, max);
+
+      const handleSelect = (qId, score) => setAnswers(prev => ({ ...prev, [qId]: score }));
+
+      const isDefensive = activeSection === "defensive";
+      const currentQs = isDefensive ? defensiveQuestions : offensiveQuestions;
+      const sectionAnswered = currentQs.filter(q => answers[q.id] !== undefined).length;
+      const sectionComplete = sectionAnswered === currentQs.length;
+      const canSubmit = answeredCount === totalQ;
+
+      const reset = () => { setAnswers({}); setSubmitted(false); setActiveSection("intro"); setCompanyName(""); };
+
+      const navBtn = (onClick, disabled, children, primary) => (
+        <button onClick={onClick} disabled={disabled} style={{
+          background: disabled ? "#f1f5f9" : primary ? (primary === "green" ? "linear-gradient(135deg,#16a34a,#22c55e)" : "linear-gradient(135deg,#1d4ed8,#3b82f6)") : "white",
+          color: disabled ? "#94a3b8" : primary ? "white" : "#64748b",
+          border: disabled ? "1px solid #e2e8f0" : primary ? "none" : "1px solid #e2e8f0",
+          borderRadius: 10, padding: "11px 24px", fontSize: 14, fontWeight: 600,
+          cursor: disabled ? "not-allowed" : "pointer", transition: "all 0.2s",
+          boxShadow: primary && !disabled ? "0 2px 12px rgba(0,0,0,0.12)" : "none"
+        }}>{children}</button>
+      );
+
+      // INTRO
+      if (activeSection === "intro") return (
+        <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #f8fafc 0%, #f1f5f9 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ maxWidth: 520, width: "100%", textAlign: "center" }}>
+            <h1 style={{ fontSize: "clamp(28px,5vw,40px)", fontWeight: 700, color: "#0f172a", lineHeight: 1.2, marginBottom: 12 }}>
+              How Exposed Is Your SaaS Business To AI Disruption?
+            </h1>
+            <p style={{ color: "#64748b", fontSize: 15, lineHeight: 1.8, marginBottom: 32 }}>
+            Assess your company's AI defensibility and execution in 10 questions. Select the option that best reflects your current state - not your aspiration. Takes ~3 minutes.
+            </p>
+
+            <div style={{ display: "flex", gap: 12, marginBottom: 32 }}>
+              {[
+                { icon: "🛡️", title: "AI Defensibility", sub: "Moat & durability", qs: "4 questions" },
+                { icon: "⚔️", title: "AI Execution", sub: "Strategy & deployment", qs: "6 questions" },
+              ].map(({ icon, title, sub, qs }) => (
+                <div key={title} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: "18px 20px", flex: 1, textAlign: "left", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                  <div style={{ fontSize: 20, marginBottom: 10 }}>{icon}</div>
+                  <div style={{ color: "#0f172a", fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{title}</div>
+                  <div style={{ color: "#475569", fontSize: 13, marginBottom: 6 }}>{sub}</div>
+                  <div style={{ color: "#cbd5e1", fontSize: 11, fontWeight: 600, letterSpacing: 0.5 }}>{qs}</div>
+                </div>
+              ))}
+            </div>
+
+            <input
+              placeholder="Company name (optional)"
+              value={companyName}
+              onChange={e => setCompanyName(e.target.value)}
+              style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: "1px solid #e2e8f0", background: "white", color: "#0f172a", fontSize: 14, outline: "none", fontFamily: "inherit", marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+            />
+
+            <button
+              onClick={() => setActiveSection("defensive")}
+              style={{ width: "100%", background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", color: "white", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}
+            >
+              Begin Assessment →
+            </button>
+
+            <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 10 }}>
+              {[TAG.LOW, TAG.MID, TAG.HIGH].map(t => <TagBadge key={t} tag={t} />)}
+            </div>
+            <div style={{ marginTop: 16, color: "#cbd5e1", fontSize: 11 }}></div>
+          </div>
+        </div>
+      );
+
+      // RESULTS
+      if (submitted) {
+        return <Results answers={answers} companyName={companyName} reset={reset} />;
+      }
+
+      // QUESTIONS
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc", padding: "24px 16px" }}>
+          <div style={{ maxWidth: 660, margin: "0 auto" }}>
+
+            {/* Top bar */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", letterSpacing: 1 }}>{companyName || "AI Readiness"}</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {["defensive","offensive"].map(s => (
+                  <button key={s} onClick={() => setActiveSection(s)} style={{ padding: "6px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontWeight: 600, border: activeSection === s ? "1.5px solid #2563eb" : "1px solid #e2e8f0", background: activeSection === s ? "#eff6ff" : "white", color: activeSection === s ? "#2563eb" : "#94a3b8" }}>
+                    {s === "defensive" ? "🛡️ AI Defensibility" : "⚡ AI Execution"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Section header */}
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
+                {isDefensive ? "🛡️ AI Defensibility" : "⚡ AI Execution Strategy"}
+              </h2>
+              <p style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
+                {isDefensive ? "How durable is your position against AI-native competitors?" : "How aggressively are you deploying AI in your product and operations?"}
+              </p>
+              <div style={{ height: 4, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 4, background: isDefensive ? "linear-gradient(90deg,#16a34a,#22c55e)" : "linear-gradient(90deg,#1d4ed8,#3b82f6)", width: (sectionAnswered / currentQs.length * 100) + "%", transition: "width 0.4s ease" }} />
+              </div>
+              <div style={{ color: "#cbd5e1", fontSize: 11, marginTop: 6, fontWeight: 500 }}>{sectionAnswered} of {currentQs.length} answered</div>
+            </div>
+
+            {/* Questions */}
+            {currentQs.map((q, i) => {
+              const selected = answers[q.id];
+              return (
+                <div key={q.id} style={{ background: "white", border: selected !== undefined ? "1.5px solid #bfdbfe" : "1px solid #e2e8f0", borderRadius: 16, padding: "20px 22px", marginBottom: 12, transition: "border-color 0.25s", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: selected !== undefined ? "#2563eb" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: selected !== undefined ? "white" : "#94a3b8", fontWeight: 700, flexShrink: 0, marginTop: 1 }}>
+                      {selected !== undefined ? "✓" : i + 1}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                        <div style={{ color: "#0f172a", fontSize: 14, lineHeight: 1.55, fontWeight: 600 }}>{q.question}</div>
+                      </div>
+                      <div style={{ color: "#94a3b8", fontSize: 12, lineHeight: 1.5 }}>{q.hint}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {q.options.map((opt, oi) => {
+                      const isSel = selected === opt.score;
+                      const tc = tagColors[opt.tag];
+                      return (
+                        <button key={oi} onClick={() => handleSelect(q.id, opt.score)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, border: isSel ? "1.5px solid " + tc.border : "1px solid #f1f5f9", background: isSel ? tc.bg : "#fafafa", cursor: "pointer", textAlign: "left", transition: "all 0.18s", gap: 12 }}>
+                          <span style={{ color: isSel ? "#0f172a" : "#64748b", fontSize: 13, lineHeight: 1.4, fontWeight: isSel ? 500 : 400 }}>{opt.label}</span>
+                          <TagBadge tag={opt.tag} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Nav */}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24, paddingBottom: 48, gap: 12 }}>
+              {isDefensive
+                ? navBtn(() => setActiveSection("intro"), false, "← Back", false)
+                : navBtn(() => setActiveSection("defensive"), false, "← AI Defensibility", false)
+              }
+              {isDefensive
+                ? navBtn(() => setActiveSection("offensive"), !sectionComplete, sectionComplete ? "Next: AI Execution ⚡" : (currentQs.length - sectionAnswered) + " left to continue", "green")
+                : navBtn(() => setSubmitted(true), !canSubmit, canSubmit ? "View My Results →" : (totalQ - answeredCount) + " questions remaining", "blue")
+              }
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
